@@ -15,21 +15,14 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_USER: ${{ secrets.USER_DB }}
-          POSTGRES_PASSWORD: ${{ secrets.PASSWORD_DB }}
-          POSTGRES_DB: ${{ secrets.NAME_DB }}
+          POSTGRES_USER: 'postgres'
+          POSTGRES_PASSWORD: 'admincontroller'
+          POSTGRES_DB: 'admincontroller'
         options: >-
           --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-    env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      NAME_DB: ${{ secrets.NAME_DB }}
-      USER_DB: ${{ secrets.USER_DB }}
-      PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
-      HOST_DB: ${{ secrets.HOST_DB }}
-      PORT_DB: ${{ secrets.PORT_DB }}
     steps:
       - uses: actions/checkout@v2
         with:
