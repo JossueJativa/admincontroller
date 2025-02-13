@@ -1,1 +1,10 @@
+# Python ignores
+*.pyc
+*.pyo
+*.pyd
 __pycache__/
+env/
+
+# Django ignores
+*.log
+*.pot
