@@ -94,7 +94,7 @@ AUTH_USER_MODEL = 'authAPI.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('NAME_DB'),
+        'NAME': os.getenv('NAME_DB', 'admincontroller'),
         'USER': os.getenv('USER_DB'),
         'PASSWORD': os.getenv('PASSWORD_DB'),
         'HOST': os.getenv('HOST_DB'),
