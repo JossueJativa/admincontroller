@@ -40,16 +40,3 @@ jobs:
 
       - name: Run tox
         run: tox -e py
-
-      - name: Descargar Sonar Scanner CLI
-        run: |
-          SCANNER_FILE_NAME=sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-          SCANNER_URI=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-          curl -L -o $SCANNER_FILE_NAME $SCANNER_URI
-      
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v4
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
