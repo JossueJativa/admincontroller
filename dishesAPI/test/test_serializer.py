@@ -1,4 +1,8 @@
 from rest_framework.test import APITestCase
+
+import django
+django.setup()
+
 from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer
 
