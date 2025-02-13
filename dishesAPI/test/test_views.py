@@ -7,9 +7,6 @@ from rest_framework import status
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
-import django
-django.setup()
-
 from authAPI.models import User
 from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer

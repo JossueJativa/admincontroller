@@ -1,8 +1,5 @@
 from django.test import TestCase
 
-import django
-django.setup()
-
 from ..models import User
 from ..serializer import UserSerializer
 

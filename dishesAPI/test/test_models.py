@@ -1,9 +1,5 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-
-import django
-django.setup()
-
 from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish
 
 class DeskModelTest(TestCase):

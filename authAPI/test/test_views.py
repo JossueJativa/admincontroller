@@ -5,9 +5,6 @@ from rest_framework import status
 
 from django.urls import reverse
 
-import django
-django.setup()
-
 from ..models import User
 
 class UserViewSetTest(TestCase):
