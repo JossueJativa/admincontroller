@@ -5,56 +5,46 @@ on:
             - main
     pull_request:
         types: [opened, synchronize, reopened]
-
 jobs:
-  sonarqube:
-    name: SonarQube Cloud
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:13
-        ports:
-          - 5432:5432
+    sonarqube:
+        name: SonarQube Cloud
+        runs-on: ubuntu-latest   
+        services:
+          postgres:
+            image: postgres:13
+            ports:
+              - 5432:5432
+            env:
+              POSTGRES_USER: ${{ secrets.USER_DB }}
+              POSTGRES_PASSWORD: ${{ secrets.PASSWORD_DB }}
+              POSTGRES_DB: ${{ secrets.NAME_DB }}
+            options: >-
+              --health-cmd="pg_isready -U ${{ secrets.USER_DB }}"
+              --health-interval=10s
+              --health-timeout=5s
+              --health-retries=5
         env:
-          POSTGRES_USER: ${{ secrets.USER_DB }}
-          POSTGRES_PASSWORD: ${{ secrets.PASSWORD_DB }}
-          POSTGRES_DB: ${{ secrets.NAME_DB }}
-        options: >-
-          --health-cmd="pg_isready -U ${{ secrets.USER_DB }}"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          # Definir las variables de entorno usando los secretos de GitHub
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          NAME_DB: ${{ secrets.NAME_DB }}
+          USER_DB: ${{ secrets.USER_DB }}
+          PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
+          HOST_DB: ${{ secrets.HOST_DB }}
+          PORT_DB: ${{ secrets.PORT_DB }}
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                fetch-depth: 0
 
-    env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Pasamos SECRET_KEY como un secreto de GitHub
-      NAME_DB: ${{ secrets.NAME_DB }}
-      USER_DB: ${{ secrets.USER_DB }}
-      PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
-      HOST_DB: localhost  # Utiliza localhost ya que el servicio de postgres estará en la misma máquina
-      PORT_DB: 5432  # El puerto de la base de datos
-     
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install tox and any other packages
-        run: pip install tox
-
-      - name: Run tests
-        run: tox -e py  # Aquí se ejecutan los tests con tox
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v4
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            - name: Setup Python
+              uses: actions/setup-python@v2
+              with:
+                python-version: ${{ matrix.python }}
+            - name: Install tox and any other packages
+              run: pip install tox
+            - name: Run tox
+              run: tox -e py
+            - name: SonarQube Scan
+              uses: SonarSource/sonarqube-scan-action@v4
+              env:
+                SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
