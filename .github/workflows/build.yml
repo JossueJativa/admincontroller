@@ -1,55 +1,55 @@
 name: Build
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
 jobs:
-    sonarqube:
-        name: SonarQube Cloud
-        runs-on: ubuntu-latest   
-        services:
-          postgres:
-            image: postgres:13
-            ports:
-              - 5432:5432
-            env:
-              POSTGRES_USER: ${{ secrets.USER_DB }}
-              POSTGRES_PASSWORD: ${{ secrets.PASSWORD_DB }}
-              POSTGRES_DB: ${{ secrets.NAME_DB }}
-            options: >-
-              --health-cmd="pg_isready -U ${{ secrets.USER_DB }}"
-              --health-interval=10s
-              --health-timeout=5s
-              --health-retries=5
+  sonarqube:
+    name: SonarQube Cloud
+    runs-on: ubuntu-latest   
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
         env:
-          # Definir las variables de entorno usando los secretos de GitHub
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          NAME_DB: ${{ secrets.NAME_DB }}
-          USER_DB: ${{ secrets.USER_DB }}
-          PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
-          HOST_DB: ${{ secrets.HOST_DB }}
-          PORT_DB: ${{ secrets.PORT_DB }}
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                fetch-depth: 0
+          POSTGRES_USER: ${{ secrets.USER_DB }}
+          POSTGRES_PASSWORD: ${{ secrets.PASSWORD_DB }}
+          POSTGRES_DB: ${{ secrets.NAME_DB }}
+        options: >-
+          --health-cmd="pg_isready -U ${{ secrets.USER_DB }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      # Definir las variables de entorno usando los secretos de GitHub
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      NAME_DB: ${{ secrets.NAME_DB }}
+      USER_DB: ${{ secrets.USER_DB }}
+      PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
+      HOST_DB: ${{ secrets.HOST_DB }}
+      PORT_DB: ${{ secrets.PORT_DB }}
+    steps:
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: 0
 
-            - name: Setup Python
-              uses: actions/setup-python@v2
-              with:
-                python-version: 3.12
+        - name: Setup Python
+          uses: actions/setup-python@v2
+          with:
+            python-version: 3.12
 
-            - name: Install dependencies
-              run: |
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
 
-            - name: Run tox
-              run: tox -e py
-              
-            - name: SonarQube Scan
-              uses: SonarSource/sonarqube-scan-action@v4
-              env:
-                SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        - name: Run tox
+          run: tox -e py
+
+        - name: SonarQube Scan
+          uses: SonarSource/sonarqube-scan-action@v4
+          env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
