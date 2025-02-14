@@ -29,11 +29,16 @@ class UserViewSet(viewsets.ModelViewSet):
     def login(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        user_password = User.objects.get(username=username).password
-        if not check_password(password, user_password):
-            return Response({'error': 'Invalid credentials'}, status=400)
+        try:
+            user_password = User.objects.get(username=username).password
+            if not check_password(password, user_password):
+                return Response({'error': 'Invalid credentials'}, status=400)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
         
         user = User.objects.get(username=username)
+        
+        
         refresh = RefreshToken.for_user(user)
         update_last_login(None, user)
         return Response({
