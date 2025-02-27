@@ -19,6 +19,7 @@ class SerializerTestCase(APITestCase):
             'time_elaboration': '00:30:00',
             'price': 10,
             'link_ar': 'http://example.com/ar',
+            'embebedAR': 'http://example.com/embebedAR',
             'ingredient': [self.ingredient.id]
         }
         self.order_data = {
@@ -34,7 +35,8 @@ class SerializerTestCase(APITestCase):
             description=self.dish_data['description'],
             time_elaboration=self.dish_data['time_elaboration'],
             price=self.dish_data['price'],
-            link_ar=self.dish_data['link_ar']
+            link_ar=self.dish_data['link_ar'],
+            embebedAR=self.dish_data['embebedAR']
         )
         self.dish.ingredient.set([self.ingredient])  # Use set() method to assign ingredients
         
@@ -72,7 +74,6 @@ class SerializerTestCase(APITestCase):
         expected_data['ingredient'] = [self.ingredient.id]
         
         self.assertEqual(validated_data, expected_data)
-
 
     def test_order_serializer(self):
         serializer = OrderSerializer(data=self.order_data)
