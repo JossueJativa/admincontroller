@@ -46,7 +46,14 @@ class IngredientModelTest(TestCase):
 class DishModelTest(TestCase):
     def setUp(self):
         self.ingredient = Ingredient.objects.create(ingredient_name="Flour", quantity=2)
-        self.dish = Dish.objects.create(dish_name="Pizza", description="Delicious pizza", time_elaboration="00:30:00", price=10, link_ar="http://example.com")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza", 
+            description="Delicious pizza", 
+            time_elaboration="00:30:00", 
+            price=10, 
+            link_ar="http://example.com",
+            embebedAR="http://example.com/embebedAR"
+        )
         self.dish.ingredient.add(self.ingredient)
 
     def test_dish_creation(self):
@@ -55,11 +62,18 @@ class DishModelTest(TestCase):
         self.assertEqual(self.dish.time_elaboration, "00:30:00")
         self.assertEqual(self.dish.price, 10)
         self.assertEqual(self.dish.link_ar, "http://example.com")
+        self.assertEqual(self.dish.embebedAR, "http://example.com/embebedAR")
         self.assertIn(self.ingredient, self.dish.ingredient.all())
 
     def test_dish_creation_without_name(self):
         with self.assertRaises(ValidationError):
-            dish = Dish(description="Delicious pizza", time_elaboration="00:30:00", price=10, link_ar="http://example.com")
+            dish = Dish(
+                description="Delicious pizza", 
+                time_elaboration="00:30:00", 
+                price=10, 
+                link_ar="http://example.com",
+                embebedAR="http://example.com/embebedAR"
+            )
             dish.full_clean()
 
 class OrderModelTest(TestCase):

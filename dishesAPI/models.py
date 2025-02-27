@@ -20,6 +20,7 @@ class Dish(models.Model):
     price = models.IntegerField()
     ingredient = models.ManyToManyField(Ingredient)
     link_ar = models.CharField(max_length=1000)
+    embebedAR = models.CharField(max_length=1000, null=True)
 
 class Order(models.Model):
     desk = models.ForeignKey(Desk, on_delete=models.CASCADE)
