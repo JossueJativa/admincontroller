@@ -19,7 +19,6 @@ class SerializerTestCase(APITestCase):
             'time_elaboration': '00:30:00',
             'price': 10,
             'link_ar': 'http://example.com/ar',
-            'embebedAR': 'http://example.com/embebedAR',
             'ingredient': [self.ingredient.id]
         }
         self.order_data = {
@@ -36,7 +35,6 @@ class SerializerTestCase(APITestCase):
             time_elaboration=self.dish_data['time_elaboration'],
             price=self.dish_data['price'],
             link_ar=self.dish_data['link_ar'],
-            embebedAR=self.dish_data['embebedAR']
         )
         self.dish.ingredient.set([self.ingredient])  # Use set() method to assign ingredients
         

@@ -52,7 +52,6 @@ class DishModelTest(TestCase):
             time_elaboration="00:30:00", 
             price=10, 
             link_ar="http://example.com",
-            embebedAR="http://example.com/embebedAR"
         )
         self.dish.ingredient.add(self.ingredient)
 
@@ -62,7 +61,6 @@ class DishModelTest(TestCase):
         self.assertEqual(self.dish.time_elaboration, "00:30:00")
         self.assertEqual(self.dish.price, 10)
         self.assertEqual(self.dish.link_ar, "http://example.com")
-        self.assertEqual(self.dish.embebedAR, "http://example.com/embebedAR")
         self.assertIn(self.ingredient, self.dish.ingredient.all())
 
     def test_dish_creation_without_name(self):
@@ -72,7 +70,6 @@ class DishModelTest(TestCase):
                 time_elaboration="00:30:00", 
                 price=10, 
                 link_ar="http://example.com",
-                embebedAR="http://example.com/embebedAR"
             )
             dish.full_clean()
 
