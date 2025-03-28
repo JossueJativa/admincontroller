@@ -8,3 +8,5 @@ env/
 # Django ignores
 *.log
 *.pot
+
+.env
