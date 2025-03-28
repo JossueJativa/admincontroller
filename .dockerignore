@@ -1,0 +1,19 @@
+# Exclude Python cache and compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Exclude logs and temporary files
+*.log
+*.sqlite3
+
+# Exclude virtual environments and dependency directories
+.tox/
+venv/
+env/
+node_modules/
+
+# Exclude system files
+.DS_Store
+Thumbs.db
