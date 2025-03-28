@@ -103,7 +103,7 @@ DATABASES = {
         'NAME': os.getenv('NAME_DB', 'admincontroller'),
         'USER': os.getenv('USER_DB', 'postgres'),
         'PASSWORD': os.getenv('PASSWORD_DB', 'admincontroller'),
-        'HOST': os.getenv('HOST_DB', 'localhost'),
+        'HOST': os.getenv('HOST_DB', 'db'),
         'PORT': os.getenv('PORT_DB', '5432'),
     }
 }
