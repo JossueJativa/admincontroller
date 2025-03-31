@@ -5,8 +5,14 @@ from .models import (
     Ingredient,
     Dish,
     Order,
-    OrderDish
+    OrderDish,
+    Category
 )
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
 
 class DeskSerializer(serializers.ModelSerializer):
     class Meta:

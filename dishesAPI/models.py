@@ -1,6 +1,9 @@
 from django.db import models
 
 # Create your models here.
+class Category(models.Model):
+    category_name = models.CharField(max_length=100)
+
 class Desk(models.Model):
     desk_number = models.IntegerField()
     capacity = models.IntegerField()
@@ -10,7 +13,6 @@ class Allergens(models.Model):
 
 class Ingredient(models.Model):
     ingredient_name = models.CharField(max_length=100)
-    quantity = models.IntegerField()
     allergen = models.ManyToManyField(Allergens)
 
 class Dish(models.Model):
@@ -20,6 +22,7 @@ class Dish(models.Model):
     price = models.FloatField()
     ingredient = models.ManyToManyField(Ingredient)
     link_ar = models.CharField(max_length=1000)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
 class Order(models.Model):
     desk = models.ForeignKey(Desk, on_delete=models.CASCADE)

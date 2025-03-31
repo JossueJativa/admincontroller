@@ -8,8 +8,8 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authAPI.models import User
-from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish
-from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer
+from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category
+from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer
 
 class BaseTestCase(TestCase):
     def setUp(self):
@@ -104,7 +104,7 @@ class IngredientViewSetTest(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.allergen = Allergens.objects.create(allergen_name="Peanuts")
-        self.ingredient = Ingredient.objects.create(ingredient_name="Flour", quantity=2)
+        self.ingredient = Ingredient.objects.create(ingredient_name="Flour")
         self.ingredient.allergen.add(self.allergen)
 
     def test_get_ingredient(self):
@@ -113,24 +113,23 @@ class IngredientViewSetTest(BaseTestCase):
         self.assertEqual(response.data, IngredientSerializer(self.ingredient).data)
 
     def test_create_ingredient(self):
-        response = self.client.post('/api/ingredient/', {'ingredient_name': 'Sugar', 'quantity': 5, 'allergen': [self.allergen.id]})
+        response = self.client.post('/api/ingredient/', {'ingredient_name': 'Sugar', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_ingredient_without_auth(self):
         self.client.credentials()  # Remove authentication
-        response = self.client.post('/api/ingredient/', {'ingredient_name': 'Sugar', 'quantity': 5, 'allergen': [self.allergen.id]})
+        response = self.client.post('/api/ingredient/', {'ingredient_name': 'Sugar', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_update_ingredient(self):
-        response = self.client.put(f'/api/ingredient/{self.ingredient.id}/', {'ingredient_name': 'Salt', 'quantity': 3, 'allergen': [self.allergen.id]})
+        response = self.client.put(f'/api/ingredient/{self.ingredient.id}/', {'ingredient_name': 'Sugar', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.ingredient.refresh_from_db()
-        self.assertEqual(self.ingredient.ingredient_name, 'Salt')
-        self.assertEqual(self.ingredient.quantity, 3)
+        self.assertEqual(self.ingredient.ingredient_name, 'Sugar')
 
     def test_update_ingredient_without_auth(self):
-        self.client.credentials()  # Remove authentication
-        response = self.client.put(f'/api/ingredient/{self.ingredient.id}/', {'ingredient_name': 'Salt', 'quantity': 3, 'allergen': [self.allergen.id]})
+        self.client.credentials()
+        response = self.client.put(f'/api/ingredient/{self.ingredient.id}/', {'ingredient_name': 'Salt', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_delete_ingredient(self):
@@ -139,15 +138,23 @@ class IngredientViewSetTest(BaseTestCase):
         self.assertFalse(Ingredient.objects.filter(id=self.ingredient.id).exists())
 
     def test_delete_ingredient_without_auth(self):
-        self.client.credentials()  # Remove authentication
+        self.client.credentials()
         response = self.client.delete(f'/api/ingredient/{self.ingredient.id}/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 class DishViewSetTest(BaseTestCase):
     def setUp(self):
         super().setUp()
-        self.ingredient = Ingredient.objects.create(ingredient_name="Flour", quantity=2)
-        self.dish = Dish.objects.create(dish_name="Pizza", description="Delicious pizza", time_elaboration="00:30:00", price=10, link_ar="http://example.com")
+        self.category = Category.objects.create(category_name="Appetizers")  # Add category
+        self.ingredient = Ingredient.objects.create(ingredient_name="Flour")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza", 
+            description="Delicious pizza", 
+            time_elaboration="00:30:00", 
+            price=10, 
+            link_ar="http://example.com",
+            category=self.category  # Assign category
+        )
         self.dish.ingredient.add(self.ingredient)
 
     def test_get_dish(self):
@@ -156,12 +163,12 @@ class DishViewSetTest(BaseTestCase):
         self.assertEqual(response.data, DishSerializer(self.dish).data)
 
     def test_create_dish(self):
-        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id]})
+        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_dish_without_auth(self):
         self.client.credentials()  # Remove authentication
-        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id]})
+        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_update_dish(self):
@@ -171,7 +178,8 @@ class DishViewSetTest(BaseTestCase):
             'time_elaboration': '00:25:00', 
             'price': 12, 
             'link_ar': 'http://example.com', 
-            'ingredient': [self.ingredient.id]
+            'ingredient': [self.ingredient.id],
+            'category': self.category.id
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.dish.refresh_from_db()
@@ -189,7 +197,8 @@ class DishViewSetTest(BaseTestCase):
             'time_elaboration': '00:25:00', 
             'price': 12, 
             'link_ar': 'http://example.com', 
-            'ingredient': [self.ingredient.id]
+            'ingredient': [self.ingredient.id],
+            'category': self.category.id
         })
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -206,10 +215,24 @@ class DishViewSetTest(BaseTestCase):
 class OrderViewSetTest(BaseTestCase):
     def setUp(self):
         super().setUp()
+        self.category = Category.objects.create(category_name="Appetizers")  # Add category
         self.desk = Desk.objects.create(desk_number=1, capacity=4)
-        self.dish = Dish.objects.create(dish_name="Pizza", description="Delicious pizza", time_elaboration="00:30:00", price=10, link_ar="http://example.com")
-        self.order = Order.objects.create(desk=self.desk, date='2023-10-01', time='12:00:00', total_price=100, status='Pending')
-        self.order_dish = OrderDish.objects.create(order=self.order, dish=self.dish, quantity=2)  # Crear OrderDish
+        self.dish = Dish.objects.create(
+            dish_name="Pizza", 
+            description="Delicious pizza", 
+            time_elaboration="00:30:00", 
+            price=10, 
+            link_ar="http://example.com",
+            category=self.category  # Assign category
+        )
+        self.order = Order.objects.create(
+            desk=self.desk, 
+            date='2023-10-01', 
+            time='12:00:00', 
+            total_price=100, 
+            status='Pending'
+        )
+        self.order_dish = OrderDish.objects.create(order=self.order, dish=self.dish, quantity=2)
 
     def test_get_order(self):
         response = self.client.get(f'/api/order/{self.order.id}/')
@@ -237,9 +260,23 @@ class OrderViewSetTest(BaseTestCase):
 class OrderDishViewSetTest(BaseTestCase):
     def setUp(self):
         super().setUp()
+        self.category = Category.objects.create(category_name="Appetizers")  # Add category
         self.desk = Desk.objects.create(desk_number=1, capacity=4)
-        self.order = Order.objects.create(desk=self.desk, date='2023-10-01', time='12:00:00', total_price=100, status='Pending')
-        self.dish = Dish.objects.create(dish_name="Pizza", description="Delicious pizza", time_elaboration="00:30:00", price=10, link_ar="http://example.com")
+        self.order = Order.objects.create(
+            desk=self.desk, 
+            date='2023-10-01', 
+            time='12:00:00', 
+            total_price=100, 
+            status='Pending'
+        )
+        self.dish = Dish.objects.create(
+            dish_name="Pizza", 
+            description="Delicious pizza", 
+            time_elaboration="00:30:00", 
+            price=10, 
+            link_ar="http://example.com",
+            category=self.category  # Assign category
+        )
         self.order_dish = OrderDish.objects.create(order=self.order, dish=self.dish, quantity=2)
 
     def test_get_order_dish(self):
@@ -261,3 +298,43 @@ class OrderDishViewSetTest(BaseTestCase):
         response = self.client.delete(f'/api/orderdish/{self.order_dish.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(OrderDish.objects.filter(id=self.order_dish.id).exists())
+
+class CategoryViewSetTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.category = Category.objects.create(category_name="Appetizers")
+
+    def test_get_category(self):
+        response = self.client.get(f'/api/category/{self.category.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, CategorySerializer(self.category).data)
+
+    def test_create_category(self):
+        response = self.client.post('/api/category/', {'category_name': 'Main Course'})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_category_without_auth(self):
+        self.client.credentials()  # Remove authentication
+        response = self.client.post('/api/category/', {'category_name': 'Main Course'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_category(self):
+        response = self.client.put(f'/api/category/{self.category.id}/', {'category_name': 'Desserts'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.category_name, 'Desserts')
+
+    def test_update_category_without_auth(self):
+        self.client.credentials()  # Remove authentication
+        response = self.client.put(f'/api/category/{self.category.id}/', {'category_name': 'Desserts'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_category(self):
+        response = self.client.delete(f'/api/category/{self.category.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Category.objects.filter(id=self.category.id).exists())
+
+    def test_delete_category_without_auth(self):
+        self.client.credentials()  # Remove authentication
+        response = self.client.delete(f'/api/category/{self.category.id}/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

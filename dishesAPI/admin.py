@@ -1,8 +1,9 @@
 from django.contrib import admin
 
-from .models import Desk, Allergens, Ingredient, Dish, Order, OrderDish
+from .models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category
 
 # Register your models here.
+admin.site.register(Category)
 admin.site.register(Desk)
 admin.site.register(Allergens)
 admin.site.register(Ingredient)

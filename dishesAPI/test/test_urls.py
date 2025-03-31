@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.urls import resolve, reverse
-from ..views import DeskViewSet, AllergensViewSet, IngredientViewSet, DishViewSet, OrderViewSet, OrderDishViewSet
+from ..views import DeskViewSet, AllergensViewSet, IngredientViewSet, DishViewSet, OrderViewSet, OrderDishViewSet, CategoryViewSet
 
 class URLTests(TestCase):
     def test_desk_list_url_resolves(self):
@@ -122,3 +122,23 @@ class URLTests(TestCase):
     def test_orderdish_delete_url_resolves(self):
         url = reverse('orderdish-detail', args=[1])
         self.assertEqual(resolve(url).func.__name__, OrderDishViewSet.as_view({'delete': 'destroy'}).__name__)
+
+    def test_category_list_url_resolves(self):
+        url = reverse('category-list')
+        self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'get': 'list'}).__name__)
+
+    def test_category_detail_url_resolves(self):
+        url = reverse('category-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'get': 'retrieve'}).__name__)
+
+    def test_category_create_url_resolves(self):
+        url = reverse('category-list')
+        self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'post': 'create'}).__name__)
+
+    def test_category_update_url_resolves(self):
+        url = reverse('category-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'put': 'update'}).__name__)
+
+    def test_category_delete_url_resolves(self):
+        url = reverse('category-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'delete': 'destroy'}).__name__)
