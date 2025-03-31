@@ -6,7 +6,8 @@ from .models import (
     Dish,
     Order,
     OrderDish,
-    Category
+    Category,
+    Garrison
 )
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -32,6 +33,11 @@ class IngredientSerializer(serializers.ModelSerializer):
 class DishSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dish
+        fields = '__all__'
+
+class GarrisonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Garrison
         fields = '__all__'
 
 class OrderSerializer(serializers.ModelSerializer):

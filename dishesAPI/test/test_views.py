@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authAPI.models import User
-from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category
+from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer
 
 class BaseTestCase(TestCase):
@@ -145,15 +145,16 @@ class IngredientViewSetTest(BaseTestCase):
 class DishViewSetTest(BaseTestCase):
     def setUp(self):
         super().setUp()
-        self.category = Category.objects.create(category_name="Appetizers")  # Add category
+        self.category = Category.objects.create(category_name="Appetizers")
         self.ingredient = Ingredient.objects.create(ingredient_name="Flour")
         self.dish = Dish.objects.create(
-            dish_name="Pizza", 
-            description="Delicious pizza", 
-            time_elaboration="00:30:00", 
-            price=10, 
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
             link_ar="http://example.com",
-            category=self.category  # Assign category
+            category=self.category,
+            has_garrison=True  # Dish with garrison
         )
         self.dish.ingredient.add(self.ingredient)
 
@@ -163,12 +164,26 @@ class DishViewSetTest(BaseTestCase):
         self.assertEqual(response.data, DishSerializer(self.dish).data)
 
     def test_create_dish(self):
-        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id})
+        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id, 'has_garrison': False})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_dish_with_garrison(self):
+        response = self.client.post('/api/dish/', {
+            'dish_name': 'Burger',
+            'description': 'Tasty burger',
+            'time_elaboration': '00:20:00',
+            'price': 8,
+            'link_ar': 'http://example.com',
+            'ingredient': [self.ingredient.id],
+            'category': self.category.id,
+            'has_garrison': True
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['has_garrison'])
 
     def test_create_dish_without_auth(self):
         self.client.credentials()  # Remove authentication
-        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id})
+        response = self.client.post('/api/dish/', {'dish_name': 'Burger', 'description': 'Tasty burger', 'time_elaboration': '00:20:00', 'price': 8, 'link_ar': 'http://example.com', 'ingredient': [self.ingredient.id], 'category': self.category.id, 'has_garrison': False})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_update_dish(self):
@@ -179,7 +194,8 @@ class DishViewSetTest(BaseTestCase):
             'price': 12, 
             'link_ar': 'http://example.com', 
             'ingredient': [self.ingredient.id],
-            'category': self.category.id
+            'category': self.category.id,
+            'has_garrison': False
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.dish.refresh_from_db()
@@ -198,7 +214,8 @@ class DishViewSetTest(BaseTestCase):
             'price': 12, 
             'link_ar': 'http://example.com', 
             'ingredient': [self.ingredient.id],
-            'category': self.category.id
+            'category': self.category.id,
+            'has_garrison': False
         })
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -338,3 +355,46 @@ class CategoryViewSetTest(BaseTestCase):
         self.client.credentials()  # Remove authentication
         response = self.client.delete(f'/api/category/{self.category.id}/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+class GarrisonViewSetTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category,
+            has_garrison=True
+        )
+        self.garrison = Garrison.objects.create(garrison_name="Fries")
+        self.garrison.dish.add(self.dish)
+
+    def test_get_garrison(self):
+        response = self.client.get(f'/api/garrison/{self.garrison.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['garrison_name'], "Fries")
+
+    def test_create_garrison(self):
+        response = self.client.post('/api/garrison/', {
+            'garrison_name': 'Salad',
+            'dish': [self.dish.id]
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['garrison_name'], 'Salad')
+
+    def test_update_garrison(self):
+        response = self.client.put(f'/api/garrison/{self.garrison.id}/', {
+            'garrison_name': 'Mashed Potatoes',
+            'dish': [self.dish.id]
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.garrison.refresh_from_db()
+        self.assertEqual(self.garrison.garrison_name, 'Mashed Potatoes')
+
+    def test_delete_garrison(self):
+        response = self.client.delete(f'/api/garrison/{self.garrison.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Garrison.objects.filter(id=self.garrison.id).exists())

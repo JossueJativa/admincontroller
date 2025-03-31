@@ -23,6 +23,11 @@ class Dish(models.Model):
     ingredient = models.ManyToManyField(Ingredient)
     link_ar = models.CharField(max_length=1000)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    has_garrison = models.BooleanField(default=False)
+
+class Garrison(models.Model):
+    garrison_name = models.CharField(max_length=100)
+    dish = models.ManyToManyField(Dish, related_name='garrisons')
 
 class Order(models.Model):
     desk = models.ForeignKey(Desk, on_delete=models.CASCADE)
