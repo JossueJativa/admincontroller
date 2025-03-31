@@ -25,7 +25,7 @@ class Order(models.Model):
     desk = models.ForeignKey(Desk, on_delete=models.CASCADE)
     date = models.DateField()
     time = models.TimeField()
-    total_price = models.IntegerField()
+    total_price = models.FloatField()
     status = models.CharField(max_length=100)
     order_dish = models.ManyToManyField(Dish, through='OrderDish')
 
