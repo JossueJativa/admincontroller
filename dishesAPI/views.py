@@ -44,9 +44,9 @@ class GarrisonViewSet(BaseProtectedViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [AllowAny]  # No autenticación requerida
+    permission_classes = [AllowAny]
 
-class OrderDishViewSet(BaseProtectedViewSet):
+class OrderDishViewSet(viewsets.ModelViewSet):
     queryset = OrderDish.objects.all()
     serializer_class = OrderDishSerializer
-    permission_classes = [AllowAny]  # No autenticación requerida
+    permission_classes = [AllowAny]
