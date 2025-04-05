@@ -10,13 +10,13 @@ commonmark==0.9.1
 coverage==7.6.12
 cryptography==43.0.3
 distlib==0.3.9
-Django>=5.1.6
-django-cors-headers
+Django==5.1.6
+django-cors-headers==4.7.0
 django-extensions==3.2.3
-djangorestframework
+djangorestframework==3.15.2
 djangorestframework_simplejwt==5.4.0
 dotenv-python==0.0.1
-drf-yasg
+drf-yasg==1.21.8
 filelock==3.17.0
 idna==3.10
 inflection==0.5.1
@@ -28,7 +28,7 @@ oauthlib==3.2.2
 packaging==24.2
 platformdirs==4.3.6
 pluggy==1.5.0
-psycopg2-binary
+psycopg2-binary==2.9.10
 pycparser==2.22
 pygitguardian==1.19.0
 Pygments==2.19.1
@@ -36,7 +36,7 @@ PyJWT==2.6.0
 pyproject-api==1.9.0
 pytest==8.3.4
 pytest-django==4.10.0
-python-dotenv
+python-dotenv==0.21.1
 pytz==2025.1
 PyYAML==6.0.2
 requests==2.32.3
