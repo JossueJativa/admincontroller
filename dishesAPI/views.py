@@ -3,8 +3,16 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from .models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison
-from .serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer, GarrisonSerializer
+from .models import (
+    Desk, Allergens, Ingredient, Dish, Order, OrderDish, 
+    Category, Garrison, Invoice, InvoiceDish
+)
+from .serializer import (
+    CategorySerializer, DeskSerializer, AllergensSerializer,
+    IngredientSerializer, DishSerializer, GarrisonSerializer,
+    OrderSerializer, OrderDishSerializer, InvoiceSerializer,
+    InvoiceDishSerializer
+)
 
 class BaseProtectedViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
@@ -49,4 +57,14 @@ class OrderViewSet(viewsets.ModelViewSet):
 class OrderDishViewSet(viewsets.ModelViewSet):
     queryset = OrderDish.objects.all()
     serializer_class = OrderDishSerializer
+    permission_classes = [AllowAny]
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+    permission_classes = [AllowAny]
+
+class InvoiceDishViewSet(viewsets.ModelViewSet):
+    queryset = InvoiceDish.objects.all()
+    serializer_class = InvoiceDishSerializer
     permission_classes = [AllowAny]

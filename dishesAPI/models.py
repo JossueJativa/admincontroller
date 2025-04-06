@@ -41,3 +41,13 @@ class OrderDish(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
+
+class Invoice(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    invoice_number = models.CharField(max_length=100)
+    total_price = models.FloatField()
+
+class InvoiceDish(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)

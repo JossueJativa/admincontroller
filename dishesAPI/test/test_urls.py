@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.urls import resolve, reverse
-from ..views import DeskViewSet, AllergensViewSet, IngredientViewSet, DishViewSet, OrderViewSet, OrderDishViewSet, CategoryViewSet
+from ..views import DeskViewSet, AllergensViewSet, IngredientViewSet, DishViewSet, OrderViewSet, OrderDishViewSet, CategoryViewSet, InvoiceViewSet, InvoiceDishViewSet
 
 class URLTests(TestCase):
     def test_desk_list_url_resolves(self):
@@ -142,3 +142,43 @@ class URLTests(TestCase):
     def test_category_delete_url_resolves(self):
         url = reverse('category-detail', args=[1])
         self.assertEqual(resolve(url).func.__name__, CategoryViewSet.as_view({'delete': 'destroy'}).__name__)
+
+    def test_invoice_list_url_resolves(self):
+        url = reverse('invoice-list')
+        self.assertEqual(resolve(url).func.__name__, InvoiceViewSet.as_view({'get': 'list'}).__name__)
+
+    def test_invoice_detail_url_resolves(self):
+        url = reverse('invoice-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceViewSet.as_view({'get': 'retrieve'}).__name__)
+
+    def test_invoice_create_url_resolves(self):
+        url = reverse('invoice-list')
+        self.assertEqual(resolve(url).func.__name__, InvoiceViewSet.as_view({'post': 'create'}).__name__)
+
+    def test_invoice_update_url_resolves(self):
+        url = reverse('invoice-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceViewSet.as_view({'put': 'update'}).__name__)
+
+    def test_invoice_delete_url_resolves(self):
+        url = reverse('invoice-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceViewSet.as_view({'delete': 'destroy'}).__name__)
+
+    def test_invoicedish_list_url_resolves(self):
+        url = reverse('invoicedish-list')
+        self.assertEqual(resolve(url).func.__name__, InvoiceDishViewSet.as_view({'get': 'list'}).__name__)
+
+    def test_invoicedish_detail_url_resolves(self):
+        url = reverse('invoicedish-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceDishViewSet.as_view({'get': 'retrieve'}).__name__)
+
+    def test_invoicedish_create_url_resolves(self):
+        url = reverse('invoicedish-list')
+        self.assertEqual(resolve(url).func.__name__, InvoiceDishViewSet.as_view({'post': 'create'}).__name__)
+
+    def test_invoicedish_update_url_resolves(self):
+        url = reverse('invoicedish-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceDishViewSet.as_view({'put': 'update'}).__name__)
+
+    def test_invoicedish_delete_url_resolves(self):
+        url = reverse('invoicedish-detail', args=[1])
+        self.assertEqual(resolve(url).func.__name__, InvoiceDishViewSet.as_view({'delete': 'destroy'}).__name__)

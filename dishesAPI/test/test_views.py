@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authAPI.models import User
-from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison
+from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison, Invoice, InvoiceDish
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer
 
 class BaseTestCase(TestCase):
@@ -398,3 +398,117 @@ class GarrisonViewSetTest(BaseTestCase):
         response = self.client.delete(f'/api/garrison/{self.garrison.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Garrison.objects.filter(id=self.garrison.id).exists())
+
+class InvoiceViewSetTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.desk = Desk.objects.create(desk_number=1, capacity=4)
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category
+        )
+        self.order = Order.objects.create(
+            desk=self.desk,
+            date="2023-10-10",
+            time="12:00:00",
+            total_price=10,
+            status="Pending"
+        )
+        self.invoice = Invoice.objects.create(
+            order=self.order,
+            invoice_number="INV123",
+            total_price=10
+        )
+
+    def test_get_invoice(self):
+        response = self.client.get(f'/api/invoice/{self.invoice.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['invoice_number'], "INV123")
+
+    def test_create_invoice(self):
+        response = self.client.post('/api/invoice/', {
+            'order': self.order.id,
+            'invoice_number': 'INV124',
+            'total_price': 20
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_update_invoice(self):
+        response = self.client.put(f'/api/invoice/{self.invoice.id}/', {
+            'order': self.order.id,
+            'invoice_number': 'INV125',
+            'total_price': 30
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.invoice_number, 'INV125')
+        self.assertEqual(self.invoice.total_price, 30)
+
+    def test_delete_invoice(self):
+        response = self.client.delete(f'/api/invoice/{self.invoice.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Invoice.objects.filter(id=self.invoice.id).exists())
+
+class InvoiceDishViewSetTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.desk = Desk.objects.create(desk_number=1, capacity=4)
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category
+        )
+        self.order = Order.objects.create(
+            desk=self.desk,
+            date="2023-10-10",
+            time="12:00:00",
+            total_price=10,
+            status="Pending"
+        )
+        self.invoice = Invoice.objects.create(
+            order=self.order,
+            invoice_number="INV123",
+            total_price=10
+        )
+        self.invoice_dish = InvoiceDish.objects.create(
+            invoice=self.invoice,
+            dish=self.dish,
+            quantity=2
+        )
+
+    def test_get_invoice_dish(self):
+        response = self.client.get(f'/api/invoicedish/{self.invoice_dish.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['quantity'], 2)
+
+    def test_create_invoice_dish(self):
+        response = self.client.post('/api/invoicedish/', {
+            'invoice': self.invoice.id,
+            'dish': self.dish.id,
+            'quantity': 3
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_update_invoice_dish(self):
+        response = self.client.put(f'/api/invoicedish/{self.invoice_dish.id}/', {
+            'invoice': self.invoice.id,
+            'dish': self.dish.id,
+            'quantity': 4
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.invoice_dish.refresh_from_db()
+        self.assertEqual(self.invoice_dish.quantity, 4)
+
+    def test_delete_invoice_dish(self):
+        response = self.client.delete(f'/api/invoicedish/{self.invoice_dish.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(InvoiceDish.objects.filter(id=self.invoice_dish.id).exists())

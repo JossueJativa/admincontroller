@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison
+from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison, Invoice, InvoiceDish
 
 class CategoryModelTest(TestCase):
     def setUp(self):
@@ -186,3 +186,73 @@ class OrderDishModelTest(TestCase):
         self.assertEqual(self.order_dish.order, self.order)
         self.assertEqual(self.order_dish.dish, self.dish)
         self.assertEqual(self.order_dish.quantity, 2)
+
+class InvoiceModelTest(TestCase):
+    def setUp(self):
+        self.desk = Desk.objects.create(desk_number=1, capacity=4)
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category
+        )
+        self.order = Order.objects.create(
+            desk=self.desk,
+            date="2023-10-10",
+            time="12:00:00",
+            total_price=10,
+            status="Pending"
+        )
+        self.invoice = Invoice.objects.create(
+            order=self.order,
+            invoice_number="INV123",
+            total_price=10
+        )
+
+    def test_invoice_creation(self):
+        self.assertEqual(self.invoice.order, self.order)
+        self.assertEqual(self.invoice.invoice_number, "INV123")
+        self.assertEqual(self.invoice.total_price, 10)
+
+    def test_invoice_creation_without_order(self):
+        with self.assertRaises(ValidationError):
+            invoice = Invoice(invoice_number="INV124", total_price=20)
+            invoice.full_clean()
+
+class InvoiceDishModelTest(TestCase):
+    def setUp(self):
+        self.desk = Desk.objects.create(desk_number=1, capacity=4)
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category
+        )
+        self.order = Order.objects.create(
+            desk=self.desk,
+            date="2023-10-10",
+            time="12:00:00",
+            total_price=10,
+            status="Pending"
+        )
+        self.invoice = Invoice.objects.create(
+            order=self.order,
+            invoice_number="INV123",
+            total_price=10
+        )
+        self.invoice_dish = InvoiceDish.objects.create(
+            invoice=self.invoice,
+            dish=self.dish,
+            quantity=2
+        )
+
+    def test_invoice_dish_creation(self):
+        self.assertEqual(self.invoice_dish.invoice, self.invoice)
+        self.assertEqual(self.invoice_dish.dish, self.dish)
+        self.assertEqual(self.invoice_dish.quantity, 2)

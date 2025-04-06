@@ -1,6 +1,6 @@
 from rest_framework.test import APITestCase
-from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison
-from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer, GarrisonSerializer
+from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison, Invoice
+from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer, GarrisonSerializer, InvoiceSerializer, InvoiceDishSerializer
 
 class SerializerTestCase(APITestCase):
 
@@ -52,6 +52,9 @@ class SerializerTestCase(APITestCase):
         # Additional setup for garrison
         self.garrison = Garrison.objects.create(garrison_name="Fries")
         self.garrison.dish.add(self.dish)
+
+        # Additional setup for invoice
+        self.invoice = Invoice.objects.create(order=self.order, invoice_number="INV123", total_price=10)
 
     def test_desk_serializer(self):
         serializer = DeskSerializer(data=self.desk_data)
@@ -114,3 +117,27 @@ class SerializerTestCase(APITestCase):
         serializer = GarrisonSerializer(self.garrison)
         self.assertEqual(serializer.data['garrison_name'], "Fries")
         self.assertIn(self.dish.id, serializer.data['dish'])
+
+    def test_invoice_serializer(self):
+        invoice_data = {
+            'order': self.order.id,
+            'invoice_number': 'INV123',
+            'total_price': 10
+        }
+        serializer = InvoiceSerializer(data=invoice_data)
+        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
+        validated_data = serializer.validated_data
+        validated_data['order'] = validated_data['order'].id
+        self.assertEqual(validated_data, invoice_data)
+
+    def test_invoice_dish_serializer(self):
+        invoice_dish_data = {
+            'invoice': self.invoice.id,
+            'dish': self.dish.id,
+            'quantity': 2
+        }
+        serializer = InvoiceDishSerializer(data=invoice_dish_data)
+        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
+        self.assertEqual(serializer.validated_data['invoice'].id, self.invoice.id)
+        self.assertEqual(serializer.validated_data['dish'].id, self.dish.id)
+        self.assertEqual(serializer.validated_data['quantity'], 2)
