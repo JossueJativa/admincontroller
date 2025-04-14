@@ -1,7 +1,14 @@
+import os
+import deepl
+import re
+import logging
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from .models import (
     Desk, Allergens, Ingredient, Dish, Order, OrderDish, 
@@ -13,6 +20,17 @@ from .serializer import (
     OrderSerializer, OrderDishSerializer, InvoiceSerializer,
     InvoiceDishSerializer
 )
+
+# Ampliar la lista de idiomas soportados
+SUPPORTED_LANGUAGES = ["EN-GB", "EN-US", "ES", "FR", "DE", "IT", "NL", "PL", "PT", "RU", "JA", "ZH"]
+
+# Configurar el logger
+logger = logging.getLogger(__name__)
+
+# Mapeo de idiomas obsoletos a los nuevos valores
+LANGUAGE_MAPPING = {
+    "EN": "EN-GB",  # Cambiar EN a EN-GB por defecto
+}
 
 class BaseProtectedViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
@@ -29,6 +47,44 @@ class CategoryViewSet(BaseProtectedViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+
+        # Check for language parameter
+        target_lang = request.query_params.get('lang', 'ES').upper()
+        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())  # Remove invalid characters and whitespace
+
+        # Map deprecated languages to supported ones
+        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
+
+        if target_lang not in SUPPORTED_LANGUAGES:
+            logger.error("Unsupported language: %s", target_lang)
+            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
+
+        if target_lang != 'ES':
+            auth_key = os.getenv("DEEPL_AUTH_KEY")
+            if not auth_key:
+                logger.error("DeepL API key is not configured.")
+                return Response({"error": "DeepL API key is not configured."}, status=500)
+
+            translator = deepl.Translator(auth_key)
+
+            try:
+                # Translate category names
+                for category in data:
+                    translation = translator.translate_text(category['category_name'], target_lang=target_lang)
+                    category['category_name'] = translation.text
+            except deepl.exceptions.DeepLException as e:
+                logger.error(f"DeepL API error: {str(e)}")
+                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
+            except Exception as e:
+                logger.error(f"Unexpected error: {str(e)}")
+                return Response({"error": "An unexpected error occurred."}, status=500)
+
+        return Response(data)
+
 class DeskViewSet(BaseProtectedViewSet):
     queryset = Desk.objects.all()
     serializer_class = DeskSerializer
@@ -44,6 +100,87 @@ class IngredientViewSet(BaseProtectedViewSet):
 class DishViewSet(BaseProtectedViewSet):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        logger.debug("Request params: %s", request.query_params)  # Registrar los parámetros del request
+
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        target_lang = request.query_params.get('lang', 'ES').upper()
+        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())
+
+        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
+
+        if target_lang not in SUPPORTED_LANGUAGES:
+            logger.error("Unsupported language: %s", target_lang)
+            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
+
+        if target_lang != 'ES':
+            auth_key = os.getenv("DEEPL_AUTH_KEY")
+            if not auth_key:
+                logger.error("DeepL API key is not configured.")
+                return Response({"error": "DeepL API key is not configured."}, status=500)
+
+            translator = deepl.Translator(auth_key)
+
+            try:
+                # Translate name and description
+                translations = translator.translate_text(
+                    [data['dish_name'], data['description']], target_lang=target_lang
+                )
+                data['dish_name'] = translations[0].text
+                data['description'] = translations[1].text
+            except deepl.exceptions.DeepLException as e:
+                logger.error(f"DeepL API error: {str(e)}")
+                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
+            except Exception as e:
+                logger.error(f"Unexpected error: {str(e)}")
+                return Response({"error": "An unexpected error occurred."}, status=500)
+
+        return Response(data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+
+        # Check for language parameter
+        target_lang = request.query_params.get('lang', 'ES').upper()
+        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())  # Remove invalid characters and whitespace
+
+        # Map deprecated languages to supported ones
+        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
+
+        if target_lang not in SUPPORTED_LANGUAGES:
+            logger.error("Unsupported language: %s", target_lang)
+            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
+
+        if target_lang != 'ES':
+            auth_key = os.getenv("DEEPL_AUTH_KEY")
+            if not auth_key:
+                logger.error("DeepL API key is not configured.")
+                return Response({"error": "DeepL API key is not configured."}, status=500)
+
+            translator = deepl.Translator(auth_key)
+
+            try:
+                # Translate name and description for all dishes
+                for dish in data:
+                    translations = translator.translate_text(
+                        [dish['dish_name'], dish['description']], target_lang=target_lang
+                    )
+                    dish['dish_name'] = translations[0].text
+                    dish['description'] = translations[1].text
+            except deepl.exceptions.DeepLException as e:
+                logger.error(f"DeepL API error: {str(e)}")
+                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
+            except Exception as e:
+                logger.error(f"Unexpected error: {str(e)}")
+                return Response({"error": "An unexpected error occurred."}, status=500)
+
+        return Response(data)
 
 class GarrisonViewSet(BaseProtectedViewSet):
     queryset = Garrison.objects.all()
