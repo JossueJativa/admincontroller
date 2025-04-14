@@ -32,6 +32,31 @@ LANGUAGE_MAPPING = {
     "EN": "EN-GB",  # Cambiar EN a EN-GB por defecto
 }
 
+def translate_fields(data, fields, target_lang):
+    """
+    Helper function to translate specified fields in a list of dictionaries.
+    """
+    auth_key = os.getenv("DEEPL_AUTH_KEY")
+    if not auth_key:
+        logger.error("DeepL API key is not configured.")
+        raise ValueError("DeepL API key is not configured.")
+
+    translator = deepl.Translator(auth_key)
+
+    try:
+        for item in data:
+            translations = translator.translate_text(
+                [item[field] for field in fields], target_lang=target_lang
+            )
+            for i, field in enumerate(fields):
+                item[field] = translations[i].text
+    except deepl.exceptions.DeepLException as e:
+        logger.error(f"DeepL API error: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise
+
 class BaseProtectedViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
 
@@ -43,6 +68,18 @@ class BaseProtectedViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         return Response({'error': 'Method not allowed'}, status=405)
 
+    def translate_response(self, data, fields, request):
+        target_lang = request.query_params.get('lang', 'ES').upper()
+        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())
+        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
+
+        if target_lang not in SUPPORTED_LANGUAGES:
+            logger.error("Unsupported language: %s", target_lang)
+            raise ValueError(f"Language '{target_lang}' not supported.")
+
+        if target_lang != 'ES':
+            translate_fields(data, fields, target_lang)
+
 class CategoryViewSet(BaseProtectedViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -52,36 +89,12 @@ class CategoryViewSet(BaseProtectedViewSet):
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
 
-        # Check for language parameter
-        target_lang = request.query_params.get('lang', 'ES').upper()
-        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())  # Remove invalid characters and whitespace
-
-        # Map deprecated languages to supported ones
-        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
-
-        if target_lang not in SUPPORTED_LANGUAGES:
-            logger.error("Unsupported language: %s", target_lang)
-            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
-
-        if target_lang != 'ES':
-            auth_key = os.getenv("DEEPL_AUTH_KEY")
-            if not auth_key:
-                logger.error("DeepL API key is not configured.")
-                return Response({"error": "DeepL API key is not configured."}, status=500)
-
-            translator = deepl.Translator(auth_key)
-
-            try:
-                # Translate category names
-                for category in data:
-                    translation = translator.translate_text(category['category_name'], target_lang=target_lang)
-                    category['category_name'] = translation.text
-            except deepl.exceptions.DeepLException as e:
-                logger.error(f"DeepL API error: {str(e)}")
-                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
-            except Exception as e:
-                logger.error(f"Unexpected error: {str(e)}")
-                return Response({"error": "An unexpected error occurred."}, status=500)
+        try:
+            self.translate_response(data, ['category_name'], request)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=500)
 
         return Response(data)
 
@@ -102,42 +115,16 @@ class DishViewSet(BaseProtectedViewSet):
     serializer_class = DishSerializer
 
     def retrieve(self, request, *args, **kwargs):
-        logger.debug("Request params: %s", request.query_params)  # Registrar los parámetros del request
-
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
 
-        target_lang = request.query_params.get('lang', 'ES').upper()
-        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())
-
-        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
-
-        if target_lang not in SUPPORTED_LANGUAGES:
-            logger.error("Unsupported language: %s", target_lang)
-            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
-
-        if target_lang != 'ES':
-            auth_key = os.getenv("DEEPL_AUTH_KEY")
-            if not auth_key:
-                logger.error("DeepL API key is not configured.")
-                return Response({"error": "DeepL API key is not configured."}, status=500)
-
-            translator = deepl.Translator(auth_key)
-
-            try:
-                # Translate name and description
-                translations = translator.translate_text(
-                    [data['dish_name'], data['description']], target_lang=target_lang
-                )
-                data['dish_name'] = translations[0].text
-                data['description'] = translations[1].text
-            except deepl.exceptions.DeepLException as e:
-                logger.error(f"DeepL API error: {str(e)}")
-                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
-            except Exception as e:
-                logger.error(f"Unexpected error: {str(e)}")
-                return Response({"error": "An unexpected error occurred."}, status=500)
+        try:
+            self.translate_response([data], ['dish_name', 'description'], request)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=500)
 
         return Response(data)
 
@@ -146,39 +133,12 @@ class DishViewSet(BaseProtectedViewSet):
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
 
-        # Check for language parameter
-        target_lang = request.query_params.get('lang', 'ES').upper()
-        target_lang = re.sub(r'[^A-Z-]', '', target_lang.strip())  # Remove invalid characters and whitespace
-
-        # Map deprecated languages to supported ones
-        target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
-
-        if target_lang not in SUPPORTED_LANGUAGES:
-            logger.error("Unsupported language: %s", target_lang)
-            return Response({"error": f"Language '{target_lang}' not supported."}, status=400)
-
-        if target_lang != 'ES':
-            auth_key = os.getenv("DEEPL_AUTH_KEY")
-            if not auth_key:
-                logger.error("DeepL API key is not configured.")
-                return Response({"error": "DeepL API key is not configured."}, status=500)
-
-            translator = deepl.Translator(auth_key)
-
-            try:
-                # Translate name and description for all dishes
-                for dish in data:
-                    translations = translator.translate_text(
-                        [dish['dish_name'], dish['description']], target_lang=target_lang
-                    )
-                    dish['dish_name'] = translations[0].text
-                    dish['description'] = translations[1].text
-            except deepl.exceptions.DeepLException as e:
-                logger.error(f"DeepL API error: {str(e)}")
-                return Response({"error": f"DeepL API error: {str(e)}"}, status=500)
-            except Exception as e:
-                logger.error(f"Unexpected error: {str(e)}")
-                return Response({"error": "An unexpected error occurred."}, status=500)
+        try:
+            self.translate_response(data, ['dish_name', 'description'], request)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=500)
 
         return Response(data)
 
