@@ -33,9 +33,6 @@ LANGUAGE_MAPPING = {
 }
 
 def translate_fields(data, fields, target_lang):
-    """
-    Helper function to translate specified fields in a list of dictionaries.
-    """
     auth_key = os.getenv("DEEPL_AUTH_KEY")
     if not auth_key:
         logger.error("DeepL API key is not configured.")
@@ -145,6 +142,35 @@ class DishViewSet(BaseProtectedViewSet):
 class GarrisonViewSet(BaseProtectedViewSet):
     queryset = Garrison.objects.all()
     serializer_class = GarrisonSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        try:
+            self.translate_response([data], ['garrison_name'], request)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=500)
+
+        return Response(data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+
+        try:
+            self.translate_response(data, ['garrison_name'], request)
+            print('Garrison data:', data)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=500)
+
+        return Response(data)
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
