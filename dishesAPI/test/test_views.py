@@ -512,3 +512,43 @@ class InvoiceDishViewSetTest(BaseTestCase):
         response = self.client.delete(f'/api/invoicedish/{self.invoice_dish.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(InvoiceDish.objects.filter(id=self.invoice_dish.id).exists())
+
+class UnifiedStatisticsTest(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.category = Category.objects.create(category_name="Entradas")
+        self.desk = Desk.objects.create(desk_number=1, capacity=4)
+        self.dish = Dish.objects.create(
+            dish_name="Sopa de Tortilla",
+            description="Deliciosa sopa mexicana",
+            time_elaboration="00:30:00",
+            price=6.99,
+            category=self.category,
+            has_garrison=False
+        )
+        self.order = Order.objects.create(
+            desk=self.desk,
+            date="2025-05-01",
+            time="12:00:00",
+            total_price=6.99,
+            status="Completo"
+        )
+        self.order_dish = OrderDish.objects.create(order=self.order, dish=self.dish, quantity=1)
+
+    def test_unified_statistics(self):
+        response = self.client.get('/api/order/unified_statistics/?year=2025&month=5')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('dashboard_statistics', response.data)
+
+        dashboard_statistics = response.data['dashboard_statistics']
+        self.assertEqual(dashboard_statistics['total_dishes'], 1)
+        self.assertEqual(dashboard_statistics['total_revenue'], 6.99)
+        self.assertEqual(dashboard_statistics['average_dishes_per_table'], 1.0)
+
+        self.assertEqual(len(dashboard_statistics['dishes']), 1)
+        self.assertEqual(dashboard_statistics['dishes'][0]['dish__dish_name'], "Sopa de Tortilla")
+        self.assertEqual(dashboard_statistics['dishes'][0]['count'], 1)
+
+        self.assertEqual(len(dashboard_statistics['categories']), 1)
+        self.assertEqual(dashboard_statistics['categories'][0]['dish__category__category_name'], "Entradas")
+        self.assertEqual(dashboard_statistics['categories'][0]['count'], 1)

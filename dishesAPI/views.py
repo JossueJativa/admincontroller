@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import deepl
 import re
@@ -180,10 +181,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     @action(detail=False, methods=['get'])
-    def statistics(self, request):
+    def unified_statistics(self, request):
         try:
-            year = int(request.query_params.get('year', datetime.now().year))
-            month = int(request.query_params.get('month', datetime.now().month))
+            year = request.query_params.get('year', datetime.now().year)
+            month = request.query_params.get('month', datetime.now().month)
+
+            # Eliminate characters that are not digits
+            year = re.sub(r'[^0-9]', '', str(year))
+            month = re.sub(r'[^0-9]', '', str(month))
 
             filtered_orders = Order.objects.filter(
                 date__year=year,
@@ -197,18 +202,31 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if filtered_orders.exists() else 0
             )
 
-            dish_counts = OrderDish.objects.filter(order__in=filtered_orders).values('dish__name').annotate(count=Sum('quantity')).order_by('-count')
+            dish_counts = (
+                OrderDish.objects.filter(order__in=filtered_orders)
+                .values('dish__dish_name')
+                .annotate(count=Sum('quantity'))
+                .order_by('-count')
+            )
 
-            category_counts = OrderDish.objects.filter(order__in=filtered_orders).values('dish__category__category_name').annotate(count=Sum('quantity')).order_by('-count')
+            category_counts = (
+                OrderDish.objects.filter(order__in=filtered_orders)
+                .values('dish__category__category_name')
+                .annotate(count=Sum('quantity'))
+                .order_by('-count')
+            )
 
             return Response({
-                'total_dishes': total_dishes,
-                'total_revenue': total_revenue,
-                'average_dishes_per_table': round(average_dishes_per_table, 2),
-                'dishes': list(dish_counts),
-                'categories': list(category_counts),
+                'dashboard_statistics': {
+                    'total_dishes': total_dishes,
+                    'total_revenue': total_revenue,
+                    'average_dishes_per_table': round(average_dishes_per_table, 2),
+                    'dishes': list(dish_counts),
+                    'categories': list(category_counts),
+                }
             })
         except Exception as e:
+            logger.error(f"Error in unified_statistics endpoint: {str(e)}")
             return Response({'error': str(e)}, status=500)
 
 class OrderDishViewSet(viewsets.ModelViewSet):
