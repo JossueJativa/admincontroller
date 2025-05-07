@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from dotenv import load_dotenv
+from django.db.models import Sum, Count
+from rest_framework.decorators import action
 
 load_dotenv()
 
@@ -176,6 +178,38 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        try:
+            year = int(request.query_params.get('year', datetime.now().year))
+            month = int(request.query_params.get('month', datetime.now().month))
+
+            filtered_orders = Order.objects.filter(
+                date__year=year,
+                date__month=month
+            )
+
+            total_dishes = filtered_orders.aggregate(total_dishes=Sum('orderdish__quantity'))['total_dishes'] or 0
+            total_revenue = filtered_orders.aggregate(total_revenue=Sum('total_price'))['total_revenue'] or 0
+            average_dishes_per_table = (
+                total_dishes / filtered_orders.count()
+                if filtered_orders.exists() else 0
+            )
+
+            dish_counts = OrderDish.objects.filter(order__in=filtered_orders).values('dish__name').annotate(count=Sum('quantity')).order_by('-count')
+
+            category_counts = OrderDish.objects.filter(order__in=filtered_orders).values('dish__category__category_name').annotate(count=Sum('quantity')).order_by('-count')
+
+            return Response({
+                'total_dishes': total_dishes,
+                'total_revenue': total_revenue,
+                'average_dishes_per_table': round(average_dishes_per_table, 2),
+                'dishes': list(dish_counts),
+                'categories': list(category_counts),
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 class OrderDishViewSet(viewsets.ModelViewSet):
     queryset = OrderDish.objects.all()
