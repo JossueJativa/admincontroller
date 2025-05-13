@@ -25,7 +25,7 @@ from .serializer import (
 )
 
 # Ampliar la lista de idiomas soportados
-SUPPORTED_LANGUAGES = ["EN-GB", "EN-US", "ES", "FR", "DE", "IT", "NL", "PL", "PT", "RU", "JA", "ZH"]
+SUPPORTED_LANGUAGES = ["EN-GB", "ES"]
 
 # Configurar el logger
 logger = logging.getLogger(__name__)
