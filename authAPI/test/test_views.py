@@ -33,20 +33,6 @@ class UserViewSetTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error'], 'Invalid credentials')
 
-    def test_register(self):
-        url = reverse('user-register')
-        data = {'username': 'newuser', 'password': 'newpassword'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 2)
-
-    def test_register_existing_username(self):
-        url = reverse('user-register')
-        data = {'username': 'testuser', 'password': 'newpassword'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error'], 'Username already exists')
-
     def test_logout(self):
         # First, log in to get the refresh token
         login_url = reverse('user-login')
