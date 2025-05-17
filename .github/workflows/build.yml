@@ -38,6 +38,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run tests with coverage
+        run: |
+          coverage run manage.py test
+          coverage xml
+
+      - name: Check coverage.xml exists
+        run: ls -l coverage.xml
+
       - name: Run tox
         run: tox -e py
 
