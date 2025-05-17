@@ -652,3 +652,141 @@ class TranslateResponseTestCase(TestCase):
         finally:
             views.translate_fields = original_translate_fields
         self.assertEqual(data[0]['category_name'], 'Hola')
+
+class CategoryViewSetListErrorTestCase(TestCase):
+    def setUp(self):
+        self.view = views.CategoryViewSet()
+        self.factory = APIClient()
+        self.user = User.objects.create_user(username='testuser2', password='testpass')
+        self.request = self.factory.get('/api/category/?lang=FR')
+        self.request.user = self.user
+
+    def test_list_value_error(self):
+        # Forzar ValueError en translate_response
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise ValueError('Language not supported')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Language not supported', str(response.data))
+        self.view.translate_response = original_translate_response
+
+    def test_list_generic_exception(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise Exception('Unexpected error')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('unexpected', str(response.data['error']).lower())
+        self.view.translate_response = original_translate_response
+
+class DishViewSetListRetrieveErrorTestCase(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.ingredient = Ingredient.objects.create(ingredient_name="Flour")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category,
+            has_garrison=True
+        )
+        self.dish.ingredient.add(self.ingredient)
+        self.view = views.DishViewSet()
+        self.factory = APIClient()
+        self.user = User.objects.create_user(username='testuser3', password='testpass')
+        self.request = self.factory.get('/api/dish/?lang=FR')
+        self.request.user = self.user
+
+    def test_list_value_error(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise ValueError('Language not supported')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Language not supported', str(response.data))
+        self.view.translate_response = original_translate_response
+
+    def test_list_generic_exception(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise Exception('Unexpected error')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('unexpected', str(response.data['error']).lower())
+        self.view.translate_response = original_translate_response
+
+    def test_retrieve_value_error(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise ValueError('Language not supported')
+        self.view.translate_response = fake_translate_response
+        # Simular get_object y get_serializer
+        self.view.get_object = lambda: self.dish
+        self.view.get_serializer = lambda instance: DishSerializer(instance)
+        request = self.factory.get(f'/api/dish/{self.dish.id}/?lang=FR')
+        request.user = self.user
+        response = self.view.retrieve(request, pk=self.dish.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Language not supported', str(response.data))
+        self.view.translate_response = original_translate_response
+
+    def test_retrieve_generic_exception(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise Exception('Unexpected error')
+        self.view.translate_response = fake_translate_response
+        self.view.get_object = lambda: self.dish
+        self.view.get_serializer = lambda instance: DishSerializer(instance)
+        request = self.factory.get(f'/api/dish/{self.dish.id}/?lang=FR')
+        request.user = self.user
+        response = self.view.retrieve(request, pk=self.dish.id)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('unexpected', str(response.data['error']).lower())
+        self.view.translate_response = original_translate_response
+
+class GarrisonViewSetListErrorTestCase(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(category_name="Appetizers")
+        self.dish = Dish.objects.create(
+            dish_name="Pizza",
+            description="Delicious pizza",
+            time_elaboration="00:30:00",
+            price=10,
+            link_ar="http://example.com",
+            category=self.category,
+            has_garrison=True
+        )
+        self.garrison = Garrison.objects.create(garrison_name="Fries")
+        self.garrison.dish.add(self.dish)
+        self.view = views.GarrisonViewSet()
+        self.factory = APIClient()
+        self.user = User.objects.create_user(username='testuser4', password='testpass')
+        self.request = self.factory.get('/api/garrison/?lang=FR')
+        self.request.user = self.user
+
+    def test_list_value_error(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise ValueError('Language not supported')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Language not supported', str(response.data))
+        self.view.translate_response = original_translate_response
+
+    def test_list_generic_exception(self):
+        original_translate_response = self.view.translate_response
+        def fake_translate_response(*a, **k):
+            raise Exception('Unexpected error')
+        self.view.translate_response = fake_translate_response
+        response = self.view.list(self.request)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('unexpected', str(response.data['error']).lower())
+        self.view.translate_response = original_translate_response
