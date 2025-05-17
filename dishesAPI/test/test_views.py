@@ -11,7 +11,7 @@ from authAPI.models import User
 from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison, Invoice, InvoiceDish
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer
 from dishesAPI import views
-import pytest
+import os
 
 class BaseTestCase(TestCase):
     def setUp(self):
@@ -555,89 +555,100 @@ class UnifiedStatisticsTest(BaseTestCase):
         self.assertEqual(dashboard_statistics['categories'][0]['dish__category__category_name'], "Entradas")
         self.assertEqual(dashboard_statistics['categories'][0]['count'], 1)
 
-# 1. Test: Traducción exitosa
-def test_translate_fields_success(monkeypatch):
-    data = [{'name': 'Hola'}]
-    fields = ['name']
-    target_lang = 'EN-GB'
+class TranslateFieldsTestCase(TestCase):
+    def test_translate_fields_success(self):
+        data = [{'name': 'Hola'}]
+        fields = ['name']
+        target_lang = 'EN-GB'
 
-    class FakeTranslation:
-        def __init__(self, text):
-            self.text = text
-    class FakeTranslator:
-        def __init__(self, key):
-            pass
-        def translate_text(self, texts, target_lang=None):
-            return [FakeTranslation('Hello') for _ in texts]
+        class FakeTranslation:
+            def __init__(self, text):
+                self.text = text
+        class FakeTranslator:
+            def __init__(self, key):
+                pass
+            def translate_text(self, texts, target_lang=None):
+                return [FakeTranslation('Hello') for _ in texts]
 
-    monkeypatch.setenv('DEEPL_AUTH_KEY', 'fake-key')
-    monkeypatch.setattr(views.deepl, 'Translator', FakeTranslator)
+        with self.settings(DEEPL_AUTH_KEY='fake-key'):
+            os.environ['DEEPL_AUTH_KEY'] = 'fake-key'
+            original_translator = views.deepl.Translator
+            views.deepl.Translator = FakeTranslator
+            try:
+                views.translate_fields(data, fields, target_lang)
+            finally:
+                views.deepl.Translator = original_translator
+        self.assertEqual(data[0]['name'], 'Hello')
 
-    views.translate_fields(data, fields, target_lang)
-    assert data[0]['name'] == 'Hello'
+    def test_translate_fields_no_api_key(self):
+        data = [{'name': 'Hola'}]
+        fields = ['name']
+        target_lang = 'EN-GB'
+        if 'DEEPL_AUTH_KEY' in os.environ:
+            del os.environ['DEEPL_AUTH_KEY']
+        with self.assertRaises(ValueError) as exc:
+            views.translate_fields(data, fields, target_lang)
+        self.assertIn('DeepL API key is not configured', str(exc.exception))
 
-# 2. Test: Falta de API key
-def test_translate_fields_no_api_key(monkeypatch):
-    data = [{'name': 'Hola'}]
-    fields = ['name']
-    target_lang = 'EN-GB'
-    monkeypatch.delenv('DEEPL_AUTH_KEY', raising=False)
-    with pytest.raises(ValueError) as exc:
-        views.translate_fields(data, fields, target_lang)
-    assert 'DeepL API key is not configured' in str(exc.value)
+    def test_translate_fields_deepl_exception(self):
+        data = [{'name': 'Hola'}]
+        fields = ['name']
+        target_lang = 'EN-GB'
+        class FakeTranslator:
+            def __init__(self, key):
+                pass
+            def translate_text(self, texts, target_lang=None):
+                raise views.deepl.exceptions.DeepLException('DeepL error')
+        with self.settings(DEEPL_AUTH_KEY='fake-key'):
+            os.environ['DEEPL_AUTH_KEY'] = 'fake-key'
+            original_translator = views.deepl.Translator
+            views.deepl.Translator = FakeTranslator
+            try:
+                with self.assertRaises(views.deepl.exceptions.DeepLException):
+                    views.translate_fields(data, fields, target_lang)
+            finally:
+                views.deepl.Translator = original_translator
 
-# 3. Test: Excepción de DeepL
-def test_translate_fields_deepl_exception(monkeypatch):
-    data = [{'name': 'Hola'}]
-    fields = ['name']
-    target_lang = 'EN-GB'
-    class FakeDeepLException(Exception):
-        pass
-    class FakeTranslator:
-        def __init__(self, key):
-            pass
-        def translate_text(self, texts, target_lang=None):
-            raise views.deepl.exceptions.DeepLException('DeepL error')
-    monkeypatch.setenv('DEEPL_AUTH_KEY', 'fake-key')
-    monkeypatch.setattr(views.deepl, 'Translator', FakeTranslator)
-    monkeypatch.setattr(views.deepl, 'exceptions', views.deepl.exceptions)
-    with pytest.raises(views.deepl.exceptions.DeepLException):
-        views.translate_fields(data, fields, target_lang)
+    def test_translate_fields_generic_exception(self):
+        data = [{'name': 'Hola'}]
+        fields = ['name']
+        target_lang = 'EN-GB'
+        class FakeTranslator:
+            def __init__(self, key):
+                pass
+            def translate_text(self, texts, target_lang=None):
+                raise Exception('Generic error')
+        with self.settings(DEEPL_AUTH_KEY='fake-key'):
+            os.environ['DEEPL_AUTH_KEY'] = 'fake-key'
+            original_translator = views.deepl.Translator
+            views.deepl.Translator = FakeTranslator
+            try:
+                with self.assertRaises(Exception) as exc:
+                    views.translate_fields(data, fields, target_lang)
+                self.assertIn('Generic error', str(exc.exception))
+            finally:
+                views.deepl.Translator = original_translator
 
-# 4. Test: Excepción genérica
-def test_translate_fields_generic_exception(monkeypatch):
-    data = [{'name': 'Hola'}]
-    fields = ['name']
-    target_lang = 'EN-GB'
-    class FakeTranslator:
-        def __init__(self, key):
-            pass
-        def translate_text(self, texts, target_lang=None):
-            raise Exception('Generic error')
-    monkeypatch.setenv('DEEPL_AUTH_KEY', 'fake-key')
-    monkeypatch.setattr(views.deepl, 'Translator', FakeTranslator)
-    with pytest.raises(Exception) as exc:
-        views.translate_fields(data, fields, target_lang)
-    assert 'Generic error' in str(exc.value)
+class TranslateResponseTestCase(TestCase):
+    def test_translate_response_unsupported_language(self):
+        class DummyRequest:
+            query_params = {'lang': 'FR'}
+        data = [{'category_name': 'Hola'}]
+        view = views.CategoryViewSet()
+        with self.assertRaises(ValueError) as exc:
+            view.translate_response(data, ['category_name'], DummyRequest())
+        self.assertIn('not supported', str(exc.exception))
 
-# 5. Test: Idioma no soportado en la view
-def test_translate_response_unsupported_language():
-    class DummyRequest:
-        query_params = {'lang': 'FR'}
-    data = [{'category_name': 'Hola'}]
-    view = views.CategoryViewSet()
-    with pytest.raises(ValueError) as exc:
-        view.translate_response(data, ['category_name'], DummyRequest())
-    assert 'not supported' in str(exc.value)
-
-# 6. Test: No se traduce si idioma es ES
-def test_translate_response_no_translation(monkeypatch):
-    class DummyRequest:
-        query_params = {'lang': 'ES'}
-    data = [{'category_name': 'Hola'}]
-    view = views.CategoryViewSet()
-    # Patch translate_fields to fail if called
-    monkeypatch.setattr(views, 'translate_fields', lambda *a, **k: (_ for _ in ()).throw(Exception('Should not be called')))
-    # Should not raise
-    view.translate_response(data, ['category_name'], DummyRequest())
-    assert data[0]['category_name'] == 'Hola'
+    def test_translate_response_no_translation(self):
+        class DummyRequest:
+            query_params = {'lang': 'ES'}
+        data = [{'category_name': 'Hola'}]
+        view = views.CategoryViewSet()
+        # Patch translate_fields to fail if called
+        original_translate_fields = views.translate_fields
+        views.translate_fields = lambda *a, **k: (_ for _ in ()).throw(Exception('Should not be called'))
+        try:
+            view.translate_response(data, ['category_name'], DummyRequest())
+        finally:
+            views.translate_fields = original_translate_fields
+        self.assertEqual(data[0]['category_name'], 'Hola')
