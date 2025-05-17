@@ -667,6 +667,8 @@ class CategoryViewSetListErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise ValueError('Language not supported')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 400)
         self.assertIn('Language not supported', str(response.data))
@@ -677,6 +679,8 @@ class CategoryViewSetListErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise Exception('Unexpected error')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 500)
         self.assertIn('unexpected', str(response.data['error']).lower())
@@ -699,7 +703,7 @@ class DishViewSetListRetrieveErrorTestCase(TestCase):
         self.view = views.DishViewSet()
         self.factory = APIClient()
         self.user = User.objects.create_user(username='testuser3', password='testpass')
-        self.request = self.factory.get('/api/dish/?lang=FR')
+        self.request = self.factory.get('/api/dish/?lang=EN')
         self.request.user = self.user
 
     def test_list_value_error(self):
@@ -707,6 +711,8 @@ class DishViewSetListRetrieveErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise ValueError('Language not supported')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 400)
         self.assertIn('Language not supported', str(response.data))
@@ -717,6 +723,8 @@ class DishViewSetListRetrieveErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise Exception('Unexpected error')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 500)
         self.assertIn('unexpected', str(response.data['error']).lower())
@@ -776,6 +784,8 @@ class GarrisonViewSetListErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise ValueError('Language not supported')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 400)
         self.assertIn('Language not supported', str(response.data))
@@ -786,6 +796,8 @@ class GarrisonViewSetListErrorTestCase(TestCase):
         def fake_translate_response(*a, **k):
             raise Exception('Unexpected error')
         self.view.translate_response = fake_translate_response
+        self.view.request = self.request  # Fix: asignar self.request
+        self.view.format_kwarg = None  # Fix: asignar format_kwarg
         response = self.view.list(self.request)
         self.assertEqual(response.status_code, 500)
         self.assertIn('unexpected', str(response.data['error']).lower())
