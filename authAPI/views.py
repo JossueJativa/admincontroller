@@ -46,23 +46,6 @@ class UserViewSet(viewsets.ModelViewSet):
             'access': str(refresh.access_token),
         })
     
-    @swagger_auto_schema(method='post', request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'username': openapi.Schema(type=openapi.TYPE_STRING),
-            'password': openapi.Schema(type=openapi.TYPE_STRING),
-        }
-    ))
-    @action(detail=False, methods=['post'])
-    def register(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        if User.objects.filter(username=username).exists():
-            return Response({'error': 'Username already exists'}, status=400)
-        user = User.objects.create(username=username, password=make_password(password))
-        user.save()
-        return Response({'success': 'User created'}, status=201)
-    
     # Logout
     @swagger_auto_schema(method='post', request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
