@@ -1,22 +1,22 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
-
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import update_last_login
-
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import jwt
+from django.conf import settings
+from datetime import datetime, timedelta
 
 from .models import User
 from .serializer import UserSerializer
 
 # Create your views here.
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    authentication_classes = []
 
     @swagger_auto_schema(method='post', request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
@@ -27,43 +27,56 @@ class UserViewSet(viewsets.ModelViewSet):
     ))
     @action(detail=False, methods=['post'])
     def login(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
         try:
-            user_password = User.objects.get(username=username).password
-            if not check_password(password, user_password):
-                return Response({'error': 'Invalid credentials'}, status=400)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=404)
-        
-        user = User.objects.get(username=username)
-        
-        
-        refresh = RefreshToken.for_user(user)
-        update_last_login(None, user)
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-        })
-    
-    # Logout
+            username = request.data.get('username')
+            password = request.data.get('password')
+            try:
+                user = User.objects.get(username=username)
+                if not check_password(password, user.password):
+                    return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Generar JWT manualmente
+            payload = {
+                'user_id': user.id,
+                'exp': datetime.utcnow() + timedelta(minutes=60),
+                'iat': datetime.utcnow(),
+            }
+            token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+            update_last_login(None, user)
+            return Response({
+                'access': token,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @swagger_auto_schema(method='post', request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
             'refresh': openapi.Schema(type=openapi.TYPE_STRING),
         }
     ))
-    @action(detail=False, methods=['post'])
-    def logout(self, request):
-        data = request.data
-        refresh = data.get('refresh')
-
-        if not refresh:
-            return Response({'error': 'Refresh token is required'}, status=400)
-
+    @action(detail=False, methods=['post'], url_path='token/refresh')
+    def token_refresh(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({'error': 'Refresh token required'}, status=400)
         try:
-            RefreshToken(refresh).blacklist()
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
-
-        return Response({'success': 'User logged out'}, status=200)
+            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=['HS256'])
+            if payload.get('type') != 'refresh':
+                return Response({'error': 'Invalid token type'}, status=400)
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Refresh token expired'}, status=401)
+        except jwt.InvalidTokenError:
+            return Response({'error': 'Invalid token'}, status=401)
+        # Genera nuevo access token
+        access_payload = {
+            'user_id': payload['user_id'],
+            'exp': datetime.utcnow() + timedelta(minutes=60),
+            'iat': datetime.utcnow(),
+            'type': 'access'
+        }
+        access_token = jwt.encode(access_payload, settings.SECRET_KEY, algorithm='HS256')
+        return Response({'access': access_token}, status=200)
