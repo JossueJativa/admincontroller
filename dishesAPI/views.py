@@ -89,7 +89,6 @@ class BaseProtectedViewSet(viewsets.ModelViewSet):
         return super().dispatch(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
-        print('DEBUG perform_destroy: user:', self.request.user, 'is_authenticated:', self.request.user.is_authenticated, 'is_active:', self.request.user.is_active)
         return super().perform_destroy(instance)
 
     def partial_update(self, request, *args, **kwargs):
@@ -101,13 +100,34 @@ class BaseProtectedViewSet(viewsets.ModelViewSet):
         target_lang = LANGUAGE_MAPPING.get(target_lang, target_lang)
 
         if target_lang not in SUPPORTED_LANGUAGES:
-            logger.error("Unsupported language: %s", target_lang)
             raise ValueError(f"Language '{target_lang}' not supported.")
 
         if target_lang != 'ES':
             translate_fields(data, fields, target_lang)
 
-class CategoryViewSet(BaseProtectedViewSet):
+class ManualJWTProtectedActionsMixin:
+    def create(self, request, *args, **kwargs):
+        try:
+            self.get_jwt_user(request)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=401)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            self.get_jwt_user(request)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=401)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            self.get_jwt_user(request)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=401)
+        return super().destroy(request, *args, **kwargs)
+
+class CategoryViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -125,7 +145,7 @@ class CategoryViewSet(BaseProtectedViewSet):
 
         return Response(data)
 
-class DeskViewSet(BaseProtectedViewSet):
+class DeskViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
     queryset = Desk.objects.all()
     serializer_class = DeskSerializer
 
@@ -138,45 +158,41 @@ class DeskViewSet(BaseProtectedViewSet):
         except Desk.DoesNotExist:
             return Response({'error': f'Desk with number {desk_number} does not exist.'}, status=404)
 
-class AllergensViewSet(BaseProtectedViewSet):
+class AllergensViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
     queryset = Allergens.objects.all()
     serializer_class = AllergensSerializer
 
-class IngredientViewSet(BaseProtectedViewSet):
+class IngredientViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
 
-class DishViewSet(BaseProtectedViewSet):
+class DishViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
     queryset = Dish.objects.all()
     serializer_class = DishSerializer
 
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        data = serializer.data
-
-        try:
-            self.translate_response([data], ['dish_name', 'description'], request)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=400)
-        except Exception as e:
-            return Response({"error": "An unexpected error occurred."}, status=500)
-
-        return Response(data)
-
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-
         try:
-            self.translate_response(data, ['dish_name', 'description'], request)
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+            self.translate_response(data, ['dish_name'], request)
+            return Response(data)
         except ValueError as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({'error': str(e)}, status=400)
         except Exception as e:
-            return Response({"error": "An unexpected error occurred."}, status=500)
+            return Response({'error': 'An unexpected error occurred.'}, status=500)
 
-        return Response(data)
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            data = serializer.data
+            self.translate_response([data], ['dish_name'], request)
+            return Response(data)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except Exception as e:
+            return Response({'error': 'An unexpected error occurred.'}, status=500)
 
 class GarrisonViewSet(BaseProtectedViewSet):
     queryset = Garrison.objects.all()

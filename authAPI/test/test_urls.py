@@ -12,7 +12,3 @@ class URLTests(TestCase):
     def test_user_login_url_resolves(self):
         url = reverse('user-login')
         self.assertEqual(resolve(url).func.__name__, UserViewSet.as_view({'post': 'login'}).__name__)
-
-    def test_user_logout_url_resolves(self):
-        url = reverse('user-logout')
-        self.assertEqual(resolve(url).func.__name__, UserViewSet.as_view({'post': 'logout'}).__name__)

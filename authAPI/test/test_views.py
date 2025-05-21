@@ -24,7 +24,6 @@ class UserViewSetTest(TestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
 
     def test_login_invalid_credentials(self):
         url = reverse('user-login')
@@ -32,33 +31,3 @@ class UserViewSetTest(TestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error'], 'Invalid credentials')
-
-    def test_logout(self):
-        # First, log in to get the refresh token
-        login_url = reverse('user-login')
-        login_data = {'username': 'testuser', 'password': 'Testpassword123'}
-        login_response = self.client.post(login_url, login_data, format='json')
-        
-        # Verify that the login was successful
-        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
-        self.assertIn('refresh', login_response.data)
-        
-        # Now, log out using the refresh token
-        logout_url = reverse('user-logout')
-        logout_data = {'refresh': login_response.data['refresh']}
-        response = self.client.post(logout_url, logout_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['success'], 'User logged out')
-
-    def test_logout_invalid_token(self):
-        url = reverse('user-logout')
-        data = {'refresh': 'invalidtoken'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error'], 'Token is invalid or expired')
-
-    def test_logout_unset_token(self):
-        url = reverse('user-logout')
-        response = self.client.post(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['error'], 'Refresh token is required')

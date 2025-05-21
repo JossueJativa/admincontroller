@@ -1,12 +1,9 @@
 from django.test import TestCase
-
-from datetime import time
-
+from datetime import time, timedelta, datetime
 from rest_framework.test import APIClient
 from rest_framework import status
-
-from rest_framework_simplejwt.tokens import RefreshToken
-
+import jwt
+from django.conf import settings
 from authAPI.models import User
 from ..models import Desk, Allergens, Ingredient, Dish, Order, OrderDish, Category, Garrison, Invoice, InvoiceDish
 from ..serializer import DeskSerializer, AllergensSerializer, IngredientSerializer, DishSerializer, OrderSerializer, OrderDishSerializer, CategorySerializer
@@ -17,8 +14,18 @@ class BaseTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username='testuser', password='testpass')
-        refresh = RefreshToken.for_user(self.user)
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        # Manual JWT generation (matches backend logic)
+        payload = {
+            'user_id': self.user.id,
+            'username': self.user.username,
+            'exp': datetime.utcnow() + timedelta(minutes=60),
+            'iat': datetime.utcnow(),
+        }
+        secret = getattr(settings, 'SECRET_KEY', 'test-secret')
+        token = jwt.encode(payload, secret, algorithm='HS256')
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
 
 class DeskViewSetTest(BaseTestCase):
     def setUp(self):
@@ -119,7 +126,7 @@ class IngredientViewSetTest(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_ingredient_without_auth(self):
-        self.client.credentials()  # Remove authentication
+        self.client.credentials(HTTP_AUTHORIZATION='')  # Remove authentication header
         response = self.client.post('/api/ingredient/', {'ingredient_name': 'Sugar', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -130,7 +137,7 @@ class IngredientViewSetTest(BaseTestCase):
         self.assertEqual(self.ingredient.ingredient_name, 'Sugar')
 
     def test_update_ingredient_without_auth(self):
-        self.client.credentials()
+        self.client.credentials(HTTP_AUTHORIZATION='')  # Remove authentication header
         response = self.client.put(f'/api/ingredient/{self.ingredient.id}/', {'ingredient_name': 'Salt', 'allergen': [self.allergen.id]})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -140,7 +147,7 @@ class IngredientViewSetTest(BaseTestCase):
         self.assertFalse(Ingredient.objects.filter(id=self.ingredient.id).exists())
 
     def test_delete_ingredient_without_auth(self):
-        self.client.credentials()
+        self.client.credentials(HTTP_AUTHORIZATION='')  # Remove authentication header
         response = self.client.delete(f'/api/ingredient/{self.ingredient.id}/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
