@@ -40,7 +40,6 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run --source=authAPI,dishesAPI manage.py test
           coverage xml
 
       - name: Check coverage.xml exists

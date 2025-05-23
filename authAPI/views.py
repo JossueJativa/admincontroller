@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import update_last_login
 from drf_yasg.utils import swagger_auto_schema
@@ -37,17 +38,27 @@ class UserViewSet(viewsets.ModelViewSet):
             except User.DoesNotExist:
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Generar JWT manualmente
-            payload = {
+            now = datetime.utcnow()
+            iat = now - timedelta(seconds=10)  # Añadir margen de 10 segundos
+
+            access_token = jwt.encode({
                 'user_id': user.id,
-                'exp': datetime.utcnow() + timedelta(minutes=60),
-                'iat': datetime.utcnow(),
-            }
-            token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+                'exp': now + timedelta(minutes=60),
+                'iat': iat,
+                'type': 'access',
+            }, settings.SECRET_KEY, algorithm='HS256')
+
+            refresh_token = jwt.encode({
+                'user_id': user.id,
+                'exp': now + timedelta(days=7),
+                'iat': iat,
+                'type': 'refresh',
+            }, settings.SECRET_KEY, algorithm='HS256')
 
             update_last_login(None, user)
             return Response({
-                'access': token,
+                'access': access_token,
+                'refresh': refresh_token,
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -58,25 +69,28 @@ class UserViewSet(viewsets.ModelViewSet):
             'refresh': openapi.Schema(type=openapi.TYPE_STRING),
         }
     ))
-    @action(detail=False, methods=['post'], url_path='token/refresh')
+    @action(detail=False, methods=['post'], url_path='token/refresh', authentication_classes=[], permission_classes=[AllowAny])
     def token_refresh(self, request):
         refresh_token = request.data.get('refresh')
         if not refresh_token:
             return Response({'error': 'Refresh token required'}, status=400)
         try:
-            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=['HS256'])
+            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=['HS256'], leeway=10)
             if payload.get('type') != 'refresh':
                 return Response({'error': 'Invalid token type'}, status=400)
         except jwt.ExpiredSignatureError:
             return Response({'error': 'Refresh token expired'}, status=401)
         except jwt.InvalidTokenError:
             return Response({'error': 'Invalid token'}, status=401)
-        # Genera nuevo access token
-        access_payload = {
+
+        now = datetime.utcnow()
+        iat = now - timedelta(seconds=10)
+
+        access_token = jwt.encode({
             'user_id': payload['user_id'],
-            'exp': datetime.utcnow() + timedelta(minutes=60),
-            'iat': datetime.utcnow(),
+            'exp': now + timedelta(minutes=60),
+            'iat': iat,
             'type': 'access'
-        }
-        access_token = jwt.encode(access_payload, settings.SECRET_KEY, algorithm='HS256')
+        }, settings.SECRET_KEY, algorithm='HS256')
+
         return Response({'access': access_token}, status=200)

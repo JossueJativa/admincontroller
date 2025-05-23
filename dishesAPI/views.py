@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # Mapeo de idiomas obsoletos a los nuevos valores
 LANGUAGE_MAPPING = {
-    "EN": "EN-GB",  # Cambiar EN a EN-GB por defecto
+    "EN": "EN-GB"
 }
 
 def translate_fields(data, fields, target_lang):
@@ -48,11 +48,13 @@ def translate_fields(data, fields, target_lang):
 
     try:
         for item in data:
+            texts_to_translate = [item[field] if item.get(field) else "" for field in fields]
             translations = translator.translate_text(
-                [item[field] for field in fields], target_lang=target_lang
+                texts_to_translate, target_lang=target_lang, source_lang="ES"
             )
             for i, field in enumerate(fields):
-                item[field] = translations[i].text
+                if item.get(field):
+                    item[field] = translations[i].text
     except deepl.exceptions.DeepLException as e:
         logger.error(f"DeepL API error: {str(e)}")
         raise
@@ -175,7 +177,7 @@ class DishViewSet(ManualJWTProtectedActionsMixin, BaseProtectedViewSet):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
             data = serializer.data
-            self.translate_response(data, ['dish_name'], request)
+            self.translate_response(data, ['dish_name', 'description'], request)
             return Response(data)
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
