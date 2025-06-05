@@ -21,7 +21,7 @@ class BaseTestCase(TestCase):
             'exp': datetime.utcnow() + timedelta(minutes=60),
             'iat': datetime.utcnow(),
         }
-        secret = getattr(settings, 'SECRET_KEY', 'test-secret')
+        secret = getattr(settings, 'DJANGO_SECRET_KEY', 'test-secret')
         token = jwt.encode(payload, secret, algorithm='HS256')
         if isinstance(token, bytes):
             token = token.decode('utf-8')
