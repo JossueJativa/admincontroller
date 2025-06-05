@@ -50,7 +50,8 @@ def translate_fields(data, fields, target_lang):
         for item in data:
             texts_to_translate = [item[field] if item.get(field) else "" for field in fields]
             translations = translator.translate_text(
-                texts_to_translate, target_lang=target_lang, source_lang="ES" 
+                texts_to_translate, 
+                target_lang=target_lang
             )
             for i, field in enumerate(fields):
                 if item.get(field):

@@ -17,11 +17,11 @@ class BaseTestCase(TestCase):
         # Manual JWT generation (matches backend logic)
         payload = {
             'user_id': self.user.id,
-            'username': self.user.username,
             'exp': datetime.utcnow() + timedelta(minutes=60),
             'iat': datetime.utcnow(),
+            'type': 'access'  # Asegura que el token es de tipo access
         }
-        secret = getattr(settings, 'DJANGO_SECRET_KEY', 'test-secret')
+        secret = getattr(settings, 'SECRET_KEY', 'test-secret')
         token = jwt.encode(payload, secret, algorithm='HS256')
         if isinstance(token, bytes):
             token = token.decode('utf-8')
