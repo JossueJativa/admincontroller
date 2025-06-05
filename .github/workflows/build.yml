@@ -38,6 +38,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Migrate database
+        run: |
+          python manage.py makemigrations --noinput
+          python manage.py migrate --noinput
+
       - name: Run tests with coverage
         run: |
           coverage xml
